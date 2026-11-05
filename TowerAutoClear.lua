@@ -1,149 +1,108 @@
---====================================
+--========================================
 -- +1 GUN FORGE
--- TOWER AUTO CLEAR V1
--- Generic NPC Combat Automation
---====================================
+-- MULTI TARGET HUB V1
+-- SCRIPT BARU
+--========================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local SETTINGS = {
-    AttackDelay = 0.25,
-    TargetDistance = 150,
-    AttackDistance = 12,
-    MoveInterval = 0.4
-}
+local ENV = getgenv and getgenv() or _G
 
-local Enabled = false
-local Running = true
-local currentTarget = nil
-local farmForward = nil
-
--- REMOVE OLD GUI
-local oldGui = player.PlayerGui:FindFirstChild("TowerAutoClearV1")
-
-if oldGui then
-    oldGui:Destroy()
+-- Hentikan script versi sebelumnya
+if ENV.GunForgeMultiTargetStop then
+    ENV.GunForgeMultiTargetStop()
 end
 
--- CREATE GUI
+local settings = {
+    Enabled = false,
+    AttackDelay = 0.2,
+    ScanDelay = 0.4,
+    MaxDistance = 250,
+    AttackDistance = 18
+}
+
+local running = true
+local currentTarget = nil
+
+-- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "TowerAutoClearV1"
+gui.Name = "GunForgeMultiTarget"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 175)
-frame.Position = UDim2.new(0.5, -140, 0.5, -85)
-frame.BackgroundColor3 = Color3.fromRGB(18, 20, 32)
+frame.Size = UDim2.new(0, 280, 0, 160)
+frame.Position = UDim2.new(0.5, -140, 0.5, -80)
+frame.BackgroundColor3 = Color3.fromRGB(20, 22, 35)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = frame
 
--- TITLE
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, -45, 0, 40)
 title.BackgroundTransparency = 1
-title.Text = "GUN FORGE | TOWER V1"
-title.TextColor3 = Color3.fromRGB(0, 255, 170)
+title.Text = "GUN FORGE | MULTI TARGET"
+title.TextColor3 = Color3.fromRGB(0, 255, 180)
+title.TextSize = 15
 title.Font = Enum.Font.GothamBold
-title.TextSize = 17
 title.Parent = frame
 
--- STATUS
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -20, 0, 35)
 status.Position = UDim2.new(0, 10, 0, 42)
 status.BackgroundTransparency = 1
-status.Text = "Status: Disabled"
+status.Text = "Status: OFF"
 status.TextColor3 = Color3.new(1, 1, 1)
-status.TextSize = 14
+status.TextSize = 13
 status.Parent = frame
 
--- BUTTON
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -30, 0, 45)
-button.Position = UDim2.new(0, 15, 0, 85)
-button.BackgroundColor3 = Color3.fromRGB(170, 45, 55)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.GothamBold
-button.TextSize = 16
-button.Text = "AUTO CLEAR: OFF"
-button.Parent = frame
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.new(1, -30, 0, 45)
+toggle.Position = UDim2.new(0, 15, 0, 85)
+toggle.BackgroundColor3 = Color3.fromRGB(150, 40, 50)
+toggle.Text = "MULTI TARGET: OFF"
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.TextSize = 15
+toggle.Font = Enum.Font.GothamBold
+toggle.Parent = frame
 
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = button
---====================================
--- MINIMIZE UI SYSTEM V3
---====================================
+Instance.new("UICorner", toggle).CornerRadius =
+    UDim.new(0, 8)
+
+-- MINIMIZE
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 30, 0, 30)
+minimize.Position = UDim2.new(1, -35, 0, 5)
+minimize.Text = "-"
+minimize.TextSize = 20
+minimize.Parent = frame
 
 local minimized = false
 
--- Mengatur judul agar tidak tertutup tombol
-title.Size = UDim2.new(1, -45, 0, 40)
-
--- Membuat tombol minimize
-local minimizeButton = Instance.new("TextButton")
-minimizeButton.Name = "MinimizeButton"
-minimizeButton.Size = UDim2.new(0, 30, 0, 30)
-minimizeButton.Position = UDim2.new(1, -35, 0, 5)
-minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 50, 70)
-minimizeButton.Text = "—"
-minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeButton.TextSize = 20
-minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.Parent = frame
-
-local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 8)
-minCorner.Parent = minimizeButton
-
--- Fungsi minimize dan maximize
-minimizeButton.MouseButton1Click:Connect(function()
-
+minimize.MouseButton1Click:Connect(function()
     minimized = not minimized
 
-    if minimized then
+    frame.Size = minimized
+        and UDim2.new(0, 280, 0, 40)
+        or UDim2.new(0, 280, 0, 160)
 
-        -- Kecilkan menu
-        frame.Size = UDim2.new(0, 280, 0, 40)
-
-        -- Sembunyikan komponen
-        status.Visible = false
-        button.Visible = false
-
-        -- Ubah tombol menjadi +
-        minimizeButton.Text = "+"
-
-    else
-
-        -- Kembalikan ukuran menu
-        frame.Size = UDim2.new(0, 280, 0, 175)
-
-        -- Tampilkan komponen
-        status.Visible = true
-        button.Visible = true
-
-        -- Ubah tombol menjadi —
-        minimizeButton.Text = "—"
-
-    end
-
+    status.Visible = not minimized
+    toggle.Visible = not minimized
+    minimize.Text = minimized and "+" or "-"
 end)
 
+-- CHARACTER
 local function getCharacter()
     local character = player.Character
-
-    if not character then
-        return nil, nil, nil
-    end
+    if not character then return end
 
     local humanoid =
         character:FindFirstChildOfClass("Humanoid")
@@ -154,241 +113,178 @@ local function getCharacter()
     return character, humanoid, root
 end
 
--- FIND NEAREST NPC
-local function findEnemy()
+-- VALIDATE TARGET
+local function isAlive(model)
+    if not model or not model.Parent then
+        return false
+    end
 
+    local humanoid =
+        model:FindFirstChildOfClass("Humanoid")
+
+    local root =
+        model:FindFirstChild("HumanoidRootPart")
+        or model.PrimaryPart
+
+    return humanoid ~= nil
+        and humanoid.Health > 0
+        and root ~= nil
+end
+
+-- FIND MONSTER
+local function findEnemy()
     local character, humanoid, root =
         getCharacter()
 
-    if not root or not humanoid then
+    if not root or not humanoid
+        or humanoid.Health <= 0 then
         return nil
     end
 
-    if humanoid.Health <= 0 then
-        return nil
-    end
-
-    local closest = nil
-    local shortest = SETTINGS.TargetDistance
+    local nearest = nil
+    local nearestDistance = settings.MaxDistance
 
     for _, object in ipairs(workspace:GetDescendants()) do
-
-        if object:IsA("Humanoid") then
+        if object:IsA("Humanoid")
+            and object.Health > 0 then
 
             local model = object.Parent
 
             if model
                 and model:IsA("Model")
                 and model ~= character
-                and object.Health > 0
                 and not Players:GetPlayerFromCharacter(model)
             then
-
                 local enemyRoot =
                     model:FindFirstChild("HumanoidRootPart")
                     or model.PrimaryPart
 
                 if enemyRoot then
-
                     local distance =
                         (root.Position - enemyRoot.Position).Magnitude
 
-                    if distance < shortest then
-
-                        shortest = distance
-                        closest = model
-
+                    if distance < nearestDistance then
+                        nearest = model
+                        nearestDistance = distance
                     end
                 end
             end
         end
     end
 
-    return closest
+    return nearest
 end
 
--- ATTACK USING EQUIPPED TOOL
-local function attackEnemy()
+-- CAMERA LOCK
+local cameraConnection =
+    RunService:BindToRenderStep(
+        "GunForgeMultiTargetAim",
+        Enum.RenderPriority.Camera.Value + 1,
+        function()
+            if not settings.Enabled
+                or not isAlive(currentTarget) then
+                return
+            end
 
-    local character = player.Character
+            local camera = workspace.CurrentCamera
 
-    if not character then
-        return
-    end
+            local targetPart =
+                currentTarget:FindFirstChild("Head")
+                or currentTarget:FindFirstChild("HumanoidRootPart")
+                or currentTarget.PrimaryPart
 
-    local tool =
-        character:FindFirstChildOfClass("Tool")
-
-    if tool then
-        tool:Activate()
-    end
-end
---====================================
--- CAMERA LOCK V2
---====================================
-
-RunService:BindToRenderStep(
-    "GunForgeTowerAim",
-    Enum.RenderPriority.Camera.Value + 1,
-    function()
-
-        if not Enabled or not currentTarget then
-            return
+            if camera and targetPart then
+                camera.CFrame = CFrame.lookAt(
+                    camera.CFrame.Position,
+                    targetPart.Position
+                )
+            end
         end
+    )
 
-        local humanoid =
-            currentTarget:FindFirstChildOfClass("Humanoid")
-
-        if not humanoid or humanoid.Health <= 0 then
-            currentTarget = nil
-            return
-        end
-
-        local targetPart =
-            currentTarget:FindFirstChild("Head")
-            or currentTarget:FindFirstChild("HumanoidRootPart")
-            or currentTarget.PrimaryPart
-
-        local camera = workspace.CurrentCamera
-
-        if targetPart and camera then
-
-            local cameraPosition = camera.CFrame.Position
-
-            camera.CFrame = CFrame.lookAt(
-                cameraPosition,
-                targetPart.Position
-            )
-
-        end
-    end
-)
-
--- AUTO CLEAR LOOP
+-- ATTACK LOOP
 task.spawn(function()
-
-    while Running do
-
-        if Enabled then
-
+    while running do
+        if settings.Enabled then
             local character, humanoid, root =
                 getCharacter()
 
-            if humanoid and root and humanoid.Health > 0 then
+            if character and humanoid and root
+                and humanoid.Health > 0 then
 
-               -- AUTO TARGET MULTI MONSTER V5
+                if not isAlive(currentTarget) then
+                    currentTarget = findEnemy()
+                end
 
-local function isTargetAlive(target)
-    if not target or not target.Parent then
-        return false
-    end
+                if currentTarget then
+                    local targetRoot =
+                        currentTarget:FindFirstChild("HumanoidRootPart")
+                        or currentTarget.PrimaryPart
 
-    local targetHumanoid =
-        target:FindFirstChildOfClass("Humanoid")
-
-    local targetRoot =
-        target:FindFirstChild("HumanoidRootPart")
-        or target.PrimaryPart
-
-    return targetHumanoid ~= nil
-        and targetHumanoid.Health > 0
-        and targetRoot ~= nil
-end
-
--- Pertahankan target sampai mati
-if not isTargetAlive(currentTarget) then
-    currentTarget = findEnemy()
-end
-
-local enemy = currentTarget
-
-if enemy then
-
-                    local enemyRoot =
-                        enemy:FindFirstChild("HumanoidRootPart")
-                        or enemy.PrimaryPart
-
-                    if enemyRoot then
-
+                    if targetRoot then
                         local distance =
-                            (root.Position - enemyRoot.Position).Magnitude
+                            (root.Position - targetRoot.Position).Magnitude
 
-                        status.Text = "Target: " .. enemy.Name
+                        status.Text = "Target: " .. currentTarget.Name
 
-                        if distance > SETTINGS.AttackDistance then
-
-                            humanoid:MoveTo(
-                                enemyRoot.Position
-                            )
-
+                        if distance > settings.MaxDistance then
+                            currentTarget = nil
+                        elseif distance > settings.AttackDistance then
+                            humanoid:MoveTo(targetRoot.Position)
                         else
-
                             humanoid:MoveTo(root.Position)
 
-                            attackEnemy()
+                            local tool =
+                                character:FindFirstChildOfClass("Tool")
 
+                            if tool then
+                                tool:Activate()
+                            else
+                                status.Text = "Equip Rocket Storm"
+                            end
                         end
                     end
-
                 else
-    currentTarget = nil
-
-    status.Text = "Stage Clear - Moving Forward"
-
-    if farmForward then
-        humanoid:MoveTo(
-            root.Position + farmForward * 25
-        )
-    end
-end
-                    
+                    status.Text = "No monsters detected"
+                end
             else
-
                 status.Text = "Waiting for character"
-
             end
         end
 
-        task.wait(SETTINGS.MoveInterval)
+        task.wait(settings.AttackDelay)
     end
-
 end)
 
--- BUTTON FUNCTION
-button.MouseButton1Click:Connect(function()
+-- TOGGLE
+toggle.MouseButton1Click:Connect(function()
+    settings.Enabled = not settings.Enabled
 
-    Enabled = not Enabled
-
-    if Enabled then
-local character = player.Character
-local root = character and
-    character:FindFirstChild("HumanoidRootPart")
-
-if root then
-    farmForward = root.CFrame.LookVector
-end
-        button.Text = "AUTO CLEAR: ON"
-        button.BackgroundColor3 =
-            Color3.fromRGB(30, 160, 95)
-
-        status.Text = "Searching for enemies..."
-
+    if settings.Enabled then
+        currentTarget = nil
+        toggle.Text = "MULTI TARGET: ON"
+        toggle.BackgroundColor3 =
+            Color3.fromRGB(30, 160, 90)
     else
-
-        button.Text = "AUTO CLEAR: OFF"
-        button.BackgroundColor3 =
-            Color3.fromRGB(170, 45, 55)
-
-        status.Text = "Status: Disabled"
-
-        local _, humanoid, root = getCharacter()
-
-        if humanoid and root then
-            humanoid:MoveTo(root.Position)
-        end
-
+        currentTarget = nil
+        toggle.Text = "MULTI TARGET: OFF"
+        toggle.BackgroundColor3 =
+            Color3.fromRGB(150, 40, 50)
+        status.Text = "Status: OFF"
     end
-
 end)
 
-print("Gun Forge Tower Auto Clear V1 Loaded")
+-- CLEANUP
+ENV.GunForgeMultiTargetStop = function()
+    running = false
+    settings.Enabled = false
+    currentTarget = nil
+
+    RunService:UnbindFromRenderStep(
+        "GunForgeMultiTargetAim"
+    )
+
+    gui:Destroy()
+end
+
+print("Gun Forge Multi Target V1 Loaded")500000500000
