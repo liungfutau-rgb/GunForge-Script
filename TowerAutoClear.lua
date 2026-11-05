@@ -18,6 +18,7 @@ local SETTINGS = {
 
 local Enabled = false
 local Running = true
+local currentTarget = nil
 
 -- REMOVE OLD GUI
 local oldGui = player.PlayerGui:FindFirstChild("TowerAutoClearV1")
@@ -164,6 +165,46 @@ local function attackEnemy()
         tool:Activate()
     end
 end
+--====================================
+-- CAMERA LOCK V2
+--====================================
+
+RunService:BindToRenderStep(
+    "GunForgeTowerAim",
+    Enum.RenderPriority.Camera.Value + 1,
+    function()
+
+        if not Enabled or not currentTarget then
+            return
+        end
+
+        local humanoid =
+            currentTarget:FindFirstChildOfClass("Humanoid")
+
+        if not humanoid or humanoid.Health <= 0 then
+            currentTarget = nil
+            return
+        end
+
+        local targetPart =
+            currentTarget:FindFirstChild("Head")
+            or currentTarget:FindFirstChild("HumanoidRootPart")
+            or currentTarget.PrimaryPart
+
+        local camera = workspace.CurrentCamera
+
+        if targetPart and camera then
+
+            local cameraPosition = camera.CFrame.Position
+
+            camera.CFrame = CFrame.lookAt(
+                cameraPosition,
+                targetPart.Position
+            )
+
+        end
+    end
+)
 
 -- AUTO CLEAR LOOP
 task.spawn(function()
@@ -178,7 +219,7 @@ task.spawn(function()
             if humanoid and root and humanoid.Health > 0 then
 
                 local enemy = findEnemy()
-
+                currentTarget = enemy
                 if enemy then
 
                     local enemyRoot =
