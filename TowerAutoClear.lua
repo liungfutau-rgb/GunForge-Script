@@ -19,6 +19,7 @@ local SETTINGS = {
 local Enabled = false
 local Running = true
 local currentTarget = nil
+local farmForward = nil
 
 -- REMOVE OLD GUI
 local oldGui = player.PlayerGui:FindFirstChild("TowerAutoClearV1")
@@ -306,10 +307,17 @@ task.spawn(function()
                     end
 
                 else
+    currentTarget = nil
 
-                    status.Text = "Waiting for enemies / next floor"
+    status.Text = "Stage Clear - Moving Forward"
 
-                end
+    if farmForward then
+        humanoid:MoveTo(
+            root.Position + farmForward * 25
+        )
+    end
+end
+                    
             else
 
                 status.Text = "Waiting for character"
@@ -328,7 +336,13 @@ button.MouseButton1Click:Connect(function()
     Enabled = not Enabled
 
     if Enabled then
+local character = player.Character
+local root = character and
+    character:FindFirstChild("HumanoidRootPart")
 
+if root then
+    farmForward = root.CFrame.LookVector
+end
         button.Text = "AUTO CLEAR: ON"
         button.BackgroundColor3 =
             Color3.fromRGB(30, 160, 95)
