@@ -79,6 +79,63 @@ button.Parent = frame
 local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 8)
 buttonCorner.Parent = button
+--====================================
+-- MINIMIZE UI SYSTEM V3
+--====================================
+
+local minimized = false
+
+-- Mengatur judul agar tidak tertutup tombol
+title.Size = UDim2.new(1, -45, 0, 40)
+
+-- Membuat tombol minimize
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+minimizeButton.Position = UDim2.new(1, -35, 0, 5)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(45, 50, 70)
+minimizeButton.Text = "—"
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.TextSize = 20
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.Parent = frame
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 8)
+minCorner.Parent = minimizeButton
+
+-- Fungsi minimize dan maximize
+minimizeButton.MouseButton1Click:Connect(function()
+
+    minimized = not minimized
+
+    if minimized then
+
+        -- Kecilkan menu
+        frame.Size = UDim2.new(0, 280, 0, 40)
+
+        -- Sembunyikan komponen
+        status.Visible = false
+        button.Visible = false
+
+        -- Ubah tombol menjadi +
+        minimizeButton.Text = "+"
+
+    else
+
+        -- Kembalikan ukuran menu
+        frame.Size = UDim2.new(0, 280, 0, 175)
+
+        -- Tampilkan komponen
+        status.Visible = true
+        button.Visible = true
+
+        -- Ubah tombol menjadi —
+        minimizeButton.Text = "—"
+
+    end
+
+end)
 
 local function getCharacter()
     local character = player.Character
