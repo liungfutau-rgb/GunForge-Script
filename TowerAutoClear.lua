@@ -276,9 +276,33 @@ task.spawn(function()
 
             if humanoid and root and humanoid.Health > 0 then
 
-                local enemy = findEnemy()
-                currentTarget = enemy
-                if enemy then
+               -- AUTO TARGET MULTI MONSTER V5
+
+local function isTargetAlive(target)
+    if not target or not target.Parent then
+        return false
+    end
+
+    local targetHumanoid =
+        target:FindFirstChildOfClass("Humanoid")
+
+    local targetRoot =
+        target:FindFirstChild("HumanoidRootPart")
+        or target.PrimaryPart
+
+    return targetHumanoid ~= nil
+        and targetHumanoid.Health > 0
+        and targetRoot ~= nil
+end
+
+-- Pertahankan target sampai mati
+if not isTargetAlive(currentTarget) then
+    currentTarget = findEnemy()
+end
+
+local enemy = currentTarget
+
+if enemy then
 
                     local enemyRoot =
                         enemy:FindFirstChild("HumanoidRootPart")
